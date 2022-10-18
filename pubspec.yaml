@@ -1,7 +1,7 @@
 name: fclone
 description: A new Flutter command line tool to easily clone your application with constants value and firebase json files
 version: 0.0.1
-homepage:
+homepage: https://github.com/bikram0000/fclone.git
 
 environment:
   sdk: '>=2.18.2 <3.0.0'
