@@ -1,0 +1,33 @@
+{
+  "package_rename_config": {
+    "android": {
+      "app_name": null,
+      "package_name": null
+    },
+    "ios": {
+      "app_name": null,
+      "bundle_name": null,
+      "package_name": null
+    },
+    "linux": {
+      "app_name": null,
+      "package_name": null,
+      "exe_name": null
+    },
+    "macos": {
+      "app_name": null,
+      "package_name": null,
+      "copyright_notice": null
+    },
+    "web": {
+      "app_name": null,
+      "description": null
+    },
+    "windows": {
+      "app_name": null,
+      "organization": null,
+      "copyright_notice": null,
+      "exe_name": null
+    }
+  }
+}
