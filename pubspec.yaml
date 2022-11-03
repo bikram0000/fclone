@@ -18,7 +18,8 @@ dependencies:
   args: ^2.3.1
   json2yaml: ^3.0.0
   archive: ^3.3.2
-  path: ^1.8.2
+
+
 
 dev_dependencies:
   flutter_test:
