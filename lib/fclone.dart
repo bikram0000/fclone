@@ -169,7 +169,7 @@ class FClone {
         }
         jsonData.remove('import_fclone');
       }
-      data += 'class FcloneConstants {\n\n';
+      data += '\n\nclass FcloneConstants {\n\n';
       jsonData.forEach((key, value) {
         data += 'static var $key= $value ;\n';
       });
@@ -213,9 +213,11 @@ class FClone {
       (List<int> newBytes) {
         bytes.addAll(newBytes);
         final downloadedLength = bytes.length;
-        flog('downloading ...:: ${(downloadedLength / (contentLength ?? 1))}');
+        flog(
+            'downloading ... :: ${(downloadedLength / (contentLength ?? 1)) * 100}');
       },
       onDone: () async {
+        flog('downloaded');
         await file.writeAsBytes(bytes);
         await generateFiles(file);
       },

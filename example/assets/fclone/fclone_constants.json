@@ -1,6 +1,0 @@
-{
-  "color": "Colors.blue",
-  "import_fclone": [
-    "import 'package:flutter/material.dart';"
-  ]
-}
