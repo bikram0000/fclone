@@ -1,5 +1,5 @@
-// import 'package:getx_translator/getx_translator.dart';
-//
-// void main(List<String> arguments) {
-//   GetxTranslator.instance.remove(arguments);
-// }
+import 'package:fclone/fclone.dart';
+
+void main(List<String> arguments) {
+  FClone.instance.backup(arguments);
+}

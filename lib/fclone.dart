@@ -15,6 +15,8 @@ import 'package:yaml/yaml.dart';
 /// A Calculator.
 class FClone {
   String? path;
+  List<String>? pathList;
+  String? backupName;
   static FClone? _instance;
 
   FClone._internal();
@@ -27,9 +29,9 @@ class FClone {
   }
 
   List<String> impFiles = [
-    'flutter_native_splash.json',
-    'icons_launcher.json',
     'package_rename_config.json',
+    'icons_launcher.json',
+    'flutter_native_splash.json',
   ];
   String fcloneConstants = 'fclone_constants.json';
   String fcloneReplaceFile = 'fclone_replace_file.json';
@@ -38,45 +40,67 @@ class FClone {
     loadKeys(arguments);
   }
 
-  Future<void> loadKeys(List<String> arguments) async {
+  void backup(List<String> arguments) {
+    loadKeys(arguments, isBackup: true);
+  }
+
+  Future<void> loadKeys(List<String> arguments, {bool isBackup = false}) async {
     if (arguments.isEmpty) {
-      final parsedArgs = loadConfigFile();
+      final parsedArgs = await loadConfigFile();
+      if (parsedArgs['backup_path'] is List) {
+        pathList = List<String>.from((parsedArgs['backup_path'] as YamlList)
+            .value
+            .map((e) => e.toString()));
+      }
       path = parsedArgs['path'];
+      backupName = parsedArgs['backup_name'];
     } else {
       final parser = ArgParser();
-      parser.addOption('path');
+      parser.addOption('path', abbr: 'p');
+      parser.addOption('backup_name', abbr: 'bn');
+      parser.addMultiOption('backup_paths');
       final parsedArgs = parser.parse(arguments);
+      if (parsedArgs['backup_path'] is List) {
+        pathList = parsedArgs['backup_path'];
+      }
       path = parsedArgs['path'];
+      backupName = parsedArgs['backup_name'];
     }
-    if (path == null) {
-      flog(
-          'error path not found please specify path where you store your zip file');
-    } else {
-      if (Uri.parse(path!).isAbsolute) {
-        flog('path is a url will download zip...');
-        await getZipFromUrl(path!);
+    if (!isBackup) {
+      if (path == null) {
+        flog(
+            'error path not found please specify path where you store your zip file');
       } else {
-        File file = File(path!);
-        if (!await file.exists()) {
-          flog('error path not found $path');
+        if (Uri.parse(path!).isAbsolute) {
+          flog('path is a url will download zip...');
+          await getZipFromUrl(path!);
         } else {
-          await generateFiles(file);
+          File file = File(path!);
+          if (!await file.exists()) {
+            flog('error path not found $path');
+          } else {
+            await generateFiles(file);
+          }
         }
       }
+    } else {
+      backupAll();
+
+      /// will do...
     }
   }
 
-  Map<String, String> loadConfigFile() {
+  Future<Map<String, dynamic>> loadConfigFile() async {
     final File file = File('pubspec.yaml');
-    final String yamlString = file.readAsStringSync();
+    final String yamlString = await file.readAsString();
     final Map yamlMap = loadYaml(yamlString);
-
     if (yamlMap['fclone'] is! Map) {
       throw Exception('fclone was not found');
     }
-    final Map<String, String> config = <String, String>{};
+    final Map<String, dynamic> config = <String, dynamic>{};
     for (MapEntry<dynamic, dynamic> entry in yamlMap['fclone'].entries) {
-      config[entry.key] = entry.value.toString();
+      config[entry.key] =
+          (entry.value is List) ? entry.value : entry.value.toString();
     }
 
     return config;
@@ -226,5 +250,26 @@ class FClone {
       },
       cancelOnError: true,
     );
+  }
+
+  Future<void> backupAll() async {
+    Directory? directory = Directory('${backupName ?? ''}_fclone');
+
+    /// backup icon,name,splash screen files and run same time..
+    await Future.forEach(impFiles, (element) async {
+      File incoming = File(element.toString().replaceAll('.json', '.yaml'));
+      File outGoing = File('${directory.path}/$element');
+      if (await incoming.exists()) {
+        if (await outGoing.exists()) {
+          await outGoing.delete();
+        }
+        await outGoing.create();
+
+        final Map yamlMap = loadYaml(await incoming.readAsString());
+        await outGoing.writeAsString(
+          '$yamlMap',
+        );
+      }
+    });
   }
 }

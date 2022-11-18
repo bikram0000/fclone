@@ -39,6 +39,7 @@ dependencies:
   fclone:
     path: ../
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -55,7 +56,10 @@ dev_dependencies:
 #  path: assets/fclone.zip
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
-
+fclone:
+  path: safasdfsdfs/asdfasdf
+  backup_path:
+    - hello
 # The following section is specific to Flutter packages.
 flutter:
 
