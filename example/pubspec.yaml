@@ -57,9 +57,11 @@ dev_dependencies:
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 fclone:
-  path: safasdfsdfs/asdfasdf
-  backup_path:
-    - hello
+  zip_file: example_fclone.zip
+  backup_name: example
+  backup_paths:
+    - lib
+    - fclone/fclone_constants.json
 # The following section is specific to Flutter packages.
 flutter:
 

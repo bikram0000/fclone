@@ -1,5 +1,5 @@
 import 'package:fclone/fclone.dart';
 
-void main(List<String> arguments) {
-  FClone.instance.backup(arguments);
+Future<void> main(List<String> arguments) async {
+  await FClone.instance.backup(arguments);
 }
