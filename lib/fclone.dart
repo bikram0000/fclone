@@ -16,6 +16,7 @@ import 'package:yaml/yaml.dart';
 /// A Calculator.
 class FClone {
   String? path;
+  String? zipDir;
   List<String>? pathList;
   String? backupName;
   static FClone? _instance;
@@ -49,6 +50,9 @@ class FClone {
     for (var element in impFiles) {
       await runYamlFile(element.toString().replaceAll('.json', ''));
     }
+    if (await Directory('${backupName}_fclone').exists()) {
+      await Directory('${backupName}_fclone').delete(recursive: true);
+    }
     // loadKeys(arguments, isBackup: true);
   }
 
@@ -61,10 +65,12 @@ class FClone {
             .map((e) => e.toString()));
       }
       path = parsedArgs['zip_file'];
+      zipDir = parsedArgs['zip_dir'];
       backupName = parsedArgs['backup_name'];
     } else {
       final parser = ArgParser();
       parser.addOption('zip_file', abbr: 'zf');
+      parser.addOption('zip_dir', abbr: 'zd');
       parser.addOption('backup_name', abbr: 'bn');
       parser.addMultiOption('backup_paths');
       final parsedArgs = parser.parse(arguments);
@@ -72,6 +78,7 @@ class FClone {
         pathList = parsedArgs['backup_paths'];
       }
       path = parsedArgs['zip_file'];
+      zipDir = parsedArgs['zip_dir'];
       backupName = parsedArgs['backup_name'];
     }
     if (!isBackup) {
@@ -119,15 +126,39 @@ class FClone {
   }
 
   Future<void> generateFiles(File file) async {
-    Directory directory = Directory('fclone');
+    Directory directory;
 
-    ///unarchive zip file...
-    try {
-      final inputStream = InputFileStream(file.path);
-      final archive = ZipDecoder().decodeBuffer(inputStream);
-      extractArchiveToDisk(archive, 'fclone');
-    } catch (e) {
-      flog('$e');
+    if (zipDir == null || zipDir!.isEmpty) {
+      directory = Directory('${backupName ?? ''}_fclone');
+
+      ///unarchive zip file...
+      try {
+//       final bytes = await File(file.path).readAsBytes();
+//       final archive = ZipDecoder().decodeBytes(bytes);
+        final bytes = File(file.path).readAsBytesSync();
+        final archive = ZipDecoder().decodeBytes(bytes);
+        await Future.forEach<ArchiveFile>(archive.files, (file) async {
+          final filename = file.name;
+          if (file.isFile) {
+            final data = file.content as List<int>;
+            File file3 = await File('${directory.path}/$filename')
+                .create(recursive: true);
+            await file3.writeAsBytes(data);
+            // ..createSync(recursive: true)
+            // ..writeAsBytesSync(data);
+          } else {
+            await Directory('${directory.path}/$filename')
+                .create(recursive: true);
+          }
+        });
+        // final inputStream = InputFileStream(file.path);
+        // final archive = ZipDecoder().decodeBuffer(inputStream);
+        // extractArchiveToDisk(archive, 'fclone');
+      } catch (e) {
+        flog('$e');
+      }
+    } else {
+      directory = Directory(zipDir!);
     }
 
     /// working on consts ...
@@ -168,24 +199,30 @@ class FClone {
     switch (name) {
       case 'package_rename_config':
         try {
-          package_rename.set([]);
+          if (await File('package_rename_config.yaml').exists()) {
+            package_rename.set([]);
+          }
         } catch (e) {
           flog('error on package rename ::$e');
         }
         break;
       case 'icons_launcher':
         try {
-          createLauncherIcons(path: 'icons_launcher.yaml', flavor: null);
+          if (await File('icons_launcher.yaml').exists()) {
+            createLauncherIcons(path: 'icons_launcher.yaml', flavor: null);
+          }
         } catch (e) {
           flog('error on icon launcher :: $e');
         }
         break;
       case 'flutter_native_splash':
         try {
-          createSplash(
-            path: 'flutter_native_splash.yaml',
-            flavor: null,
-          );
+          if (await File('flutter_native_splash.yaml').exists()) {
+            createSplash(
+              path: 'flutter_native_splash.yaml',
+              flavor: null,
+            );
+          }
         } catch (e) {
           flog('error on native splash :: $e');
         }
