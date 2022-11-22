@@ -40,23 +40,25 @@ class FClone {
 
   Future<void> exec(List<String> arguments) async {
     await loadKeys(arguments);
+    await generate();
   }
 
   Future<void> backup(List<String> arguments) async {
-    await loadKeys(arguments, isBackup: true);
+    await loadKeys(arguments);
+    await backupAll();
   }
 
   Future<void> run(List<String> arguments) async {
+    await loadKeys(arguments);
     for (var element in impFiles) {
       await runYamlFile(element.toString().replaceAll('.json', ''));
     }
     if (await Directory('${backupName}_fclone').exists()) {
       await Directory('${backupName}_fclone').delete(recursive: true);
     }
-    // loadKeys(arguments, isBackup: true);
   }
 
-  Future<void> loadKeys(List<String> arguments, {bool isBackup = false}) async {
+  Future<void> loadKeys(List<String> arguments) async {
     if (arguments.isEmpty) {
       final parsedArgs = await loadConfigFile();
       if (parsedArgs['backup_paths'] is List) {
@@ -81,27 +83,44 @@ class FClone {
       zipDir = parsedArgs['zip_dir'];
       backupName = parsedArgs['backup_name'];
     }
-    if (!isBackup) {
-      if (path == null) {
-        flog(
-            'error path not found please specify path where you store your zip file');
+    // if (!isBackup) {
+    //   if (path == null) {
+    //     flog(
+    //         'error path not found please specify path where you store your zip file');
+    //   } else {
+    //     if (Uri.parse(path!).isAbsolute) {
+    //       flog('path is a url will download zip...');
+    //       await getZipFromUrl(path!);
+    //     } else {
+    //       File file = File(path!);
+    //       if (!await file.exists()) {
+    //         flog('error path not found $path');
+    //       } else {
+    //         await generateFiles(file);
+    //       }
+    //     }
+    //   }
+    // } else {
+    //   await backupAll();
+    // }
+  }
+
+  Future<void> generate() async {
+    if (path == null) {
+      flog(
+          'error path not found please specify path where you store your zip file');
+    } else {
+      if (Uri.parse(path!).isAbsolute) {
+        flog('path is a url will download zip...');
+        await getZipFromUrl(path!);
       } else {
-        if (Uri.parse(path!).isAbsolute) {
-          flog('path is a url will download zip...');
-          await getZipFromUrl(path!);
+        File file = File(path!);
+        if (!await file.exists()) {
+          flog('error path not found $path');
         } else {
-          File file = File(path!);
-          if (!await file.exists()) {
-            flog('error path not found $path');
-          } else {
-            await generateFiles(file);
-          }
+          await generateFiles(file);
         }
       }
-    } else {
-      await backupAll();
-
-      /// will do...
     }
   }
 
