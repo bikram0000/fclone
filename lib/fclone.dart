@@ -301,8 +301,10 @@ class FClone {
       regExp.allMatches(constantString).forEach((element) {
         data.addAll({"${element.group(1)}": ''});
       });
-      RegExp regExp2 = RegExp("= (\n|.)*?;", multiLine: true);
+      RegExp regExp2 = RegExp("= (\n|.)*?;", multiLine: true, dotAll: true);
+      // RegExp regExp2 = RegExp("= (\n|.+?)*?;");
       int f = 0;
+
       regExp2.allMatches(constantString).forEach((element) {
         data.addAll({
           data.keys.elementAt(f):
@@ -364,10 +366,16 @@ class FClone {
 
   Future<Map<String, String>> filesInDirectory(
       Directory dir, Directory repla, data) async {
-    Directory rr2 = Directory('${repla.path}/${dir.path}');
-    if (!await rr2.exists()) {
-      await rr2.create();
-    }
+    var dirList = dir.path.split('/');
+    String dirstr = repla.path;
+    await Future.forEach<String>(dirList, (element) async {
+      dirstr = '$dirstr/$element';
+      Directory rr2 = Directory(dirstr);
+      if (!await rr2.exists()) {
+        await rr2.create();
+      }
+    });
+
     var lister = await dir.list(recursive: false, followLinks: false).toList();
     await Future.forEach<FileSystemEntity>(lister, (entity) async {
       FileSystemEntityType type = await FileSystemEntity.type(entity.path);
