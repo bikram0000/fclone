@@ -357,7 +357,8 @@ class FClone {
       regExp.allMatches(constantString).forEach((element) {
         data.addAll({"${element.group(1)}": ''});
       });
-      RegExp regExp2 = RegExp("= (\n|.)*?;", multiLine: true, dotAll: true);
+      // RegExp regExp2 = RegExp("= (\n|.)*?;", multiLine: true, dotAll: true);
+      RegExp regExp2 = RegExp("=(\n|)(\n|.)*?;", multiLine: true, dotAll: true);
       // RegExp regExp2 = RegExp("= (\n|.+?)*?;");
       int f = 0;
 
