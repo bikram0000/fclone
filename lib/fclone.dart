@@ -365,7 +365,7 @@ class FClone {
       regExp2.allMatches(constantString).forEach((element) {
         data.addAll({
           data.keys.elementAt(f):
-              element.group(0)!.replaceAll('= ', '').replaceAll(';', ''),
+              element.group(0)!.replaceAll('=', '').replaceAll(';', ''),
         });
         f++;
       });
