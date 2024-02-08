@@ -10,6 +10,7 @@ import 'package:http/http.dart';
 import 'package:icons_launcher/cli_commands.dart';
 import 'package:json2yaml/json2yaml.dart';
 import 'package:package_rename/package_rename.dart' as package_rename;
+import 'package:flutter_platform_versioning/flutter_platform_versioning.dart' as flutter_platform_versioning;
 import 'package:path/path.dart';
 import 'package:yaml/yaml.dart';
 
@@ -34,6 +35,7 @@ class FClone {
     'package_rename_config.json',
     'icons_launcher.json',
     'flutter_native_splash.json',
+    'flutter_platform_versioning.json'
   ];
   String fcloneConstants = 'fclone_constants.json';
   String fcloneReplaceFile = 'fclone_replace_file.json';
@@ -246,6 +248,14 @@ class FClone {
           flog('error on native splash :: $e');
         }
         break;
+      case 'flutter_platform_versioning':
+        try {
+          if (await File('flutter_platform_versioning.yaml').exists()) {
+            flutter_platform_versioning.set(['--update']);
+          }
+        } catch (e) {
+          flog('error on package platform versioning ::$e');
+        }
     }
   }
 
