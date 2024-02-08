@@ -1,39 +1,15 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+#s1 =>first backup current project => flutter pub run fclone:backup
+#s2 =>  than change the names and path =>  flutter pub run fclone:clone
+#s3 => and last => flutter pub run fclone:main
+# fclone:
+#   path: lib
+#   zip_file: fclones/restropress_08_6_23_fclone.zip #getting data from previous backup
+#   backup_name: restropress_08_6_23 #backup name that will use for current project..
+#   backup_paths:
+#     - assets/logos
+#     - android/app/src/main/res/drawable/app_icon.png
+#     - android/app/google-services.json
+#     - ios/Runner/GoogleService-Info.plist
+#     - android/app/src/main/kotlin/com/orderchop/tracking/Application.kt
+#     - android/app/src/main/kotlin/com/orderchop/tracking/MainActivity.kt
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/guides/libraries/writing-package-pages).
-
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-library-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/developing-packages).
--->
-
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
-
-## Features
-
-TODO: List what your package can do. Maybe include images, gifs, or videos.
-
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
-```dart
-const like = 'sample';
-```
-
-## Additional information
-
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
