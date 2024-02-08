@@ -6,11 +6,12 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:args/args.dart';
 import 'package:flutter_native_splash/cli_commands.dart';
+import 'package:flutter_platform_versioning/flutter_platform_versioning.dart'
+    as flutter_platform_versioning;
 import 'package:http/http.dart';
 import 'package:icons_launcher/cli_commands.dart';
 import 'package:json2yaml/json2yaml.dart';
 import 'package:package_rename/package_rename.dart' as package_rename;
-import 'package:flutter_platform_versioning/flutter_platform_versioning.dart' as flutter_platform_versioning;
 import 'package:path/path.dart';
 import 'package:yaml/yaml.dart';
 
@@ -373,10 +374,12 @@ class FClone {
       int f = 0;
 
       regExp2.allMatches(constantString).forEach((element) {
-        data.addAll({
-          data.keys.elementAt(f):
-              element.group(0)!.replaceAll('=', '').replaceAll(';', ''),
-        });
+        try {
+          data.addAll({
+            data.keys.elementAt(f):
+                element.group(0)!.replaceAll('=', '').replaceAll(';', ''),
+          });
+        } catch (e) {}
         f++;
       });
       RegExp regExp3 = RegExp("import (.+?);");

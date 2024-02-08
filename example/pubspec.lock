@@ -126,7 +126,7 @@ packages:
     source: hosted
     version: "2.2.13"
   flutter_platform_versioning:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: flutter_platform_versioning
       sha256: "8bbfb9532afa4419db9cea20009f2a92ad7c170a42f119861f3220dc18b2b737"
