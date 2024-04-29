@@ -53,17 +53,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
 
-#
-#fclone:
-#  path: assets/fclone.zip
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-fclone:
-  zip_file: example_fclone.zip
-  backup_name: example
-  backup_paths:
-    - lib
-    - fclone/fclone_constants.json
+
 # The following section is specific to Flutter packages.
 flutter:
 

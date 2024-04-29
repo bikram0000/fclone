@@ -17,7 +17,7 @@ import 'package:yaml/yaml.dart';
 
 /// A Calculator.
 class FClone {
-  String? path;
+  String? zipFile;
   String? zipDir;
   List<String>? pathList;
   String? backupName;
@@ -36,90 +36,158 @@ class FClone {
     'package_rename_config.json',
     'icons_launcher.json',
     'flutter_native_splash.json',
-    'flutter_platform_versioning.json'
+    'flutter_platform_versioning.json',
+    'fclone.json',
   ];
   String fcloneConstants = 'fclone_constants.json';
   String fcloneReplaceFile = 'fclone_replace_file.json';
 
-  Future<void> exec(List<String> arguments) async {
+  Future<void> runAll(List<String> arguments) async {
     await loadKeys(arguments);
-    await generate();
   }
+  //
+  // Future<void> exec(List<String> arguments) async {
+  //   await loadKeys(arguments);
+  //   await generate();
+  // }
+  //
+  // Future<void> backup(List<String> arguments) async {
+  //   await loadKeys(arguments);
+  //   await backupAll();
+  // }
+  //
+  // Future<void> run(List<String> arguments) async {
+  //   await loadKeys(arguments);
+  //   for (var element in impFiles) {
+  //     await runYamlFile(element.toString().replaceAll('.json', ''));
+  //   }
+  //   if (await Directory('${backupName}_fclone').exists()) {
+  //     await Directory('${backupName}_fclone').delete(recursive: true);
+  //   }
+  // }
 
-  Future<void> backup(List<String> arguments) async {
-    await loadKeys(arguments);
-    await backupAll();
-  }
-
-  Future<void> run(List<String> arguments) async {
-    await loadKeys(arguments);
-    for (var element in impFiles) {
-      await runYamlFile(element.toString().replaceAll('.json', ''));
-    }
-    if (await Directory('${backupName}_fclone').exists()) {
-      await Directory('${backupName}_fclone').delete(recursive: true);
+  Future<Map<String, dynamic>> _configFileExists() async {
+    final configFile = File('fclone.yaml');
+    final pubspecFile = File('pubspec.yaml');
+    if (await configFile.exists()) {
+      return await loadConfigFile('fclone.yaml');
+    } else if (await pubspecFile.exists()) {
+      return await loadConfigFile('pubspec.yaml');
+    } else {
+      throw "File Not Found !! make sure you have fclone.yaml or pubspec.yaml in your path";
     }
   }
 
   Future<void> loadKeys(List<String> arguments) async {
-    if (arguments.isEmpty) {
-      final parsedArgs = await loadConfigFile();
-      if (parsedArgs['backup_paths'] is List) {
-        pathList = List<String>.from((parsedArgs['backup_paths'] as YamlList)
-            .value
-            .map((e) => e.toString()));
-      }
-      path = parsedArgs['zip_file'];
-      zipDir = parsedArgs['zip_dir'];
-      backupName = parsedArgs['backup_name'];
-    } else {
-      final parser = ArgParser();
-      parser.addOption('zip_file', abbr: 'zf');
-      parser.addOption('zip_dir', abbr: 'zd');
-      parser.addOption('backup_name', abbr: 'bn');
-      parser.addMultiOption('backup_paths');
-      final parsedArgs = parser.parse(arguments);
-      if (parsedArgs['backup_paths'] is List) {
-        pathList = parsedArgs['backup_paths'];
-      }
-      path = parsedArgs['zip_file'];
-      zipDir = parsedArgs['zip_dir'];
-      backupName = parsedArgs['backup_name'];
+    final parser = ArgParser();
+    parser.addFlag(
+      'backup',
+      negatable: false,
+      help: 'Backup current project with fclone.',
+    );
+    parser.addFlag(
+      'generate',
+      negatable: false,
+      help: "This will generate files from url or path to process cloning.",
+    );
+    parser.addFlag(
+      'clone',
+      negatable: false,
+      help: 'To clone project with provided fclone file or path.',
+    );
+    parser.addFlag(
+      'all',
+      negatable: false,
+      help: 'It will do all above 3 at once.',
+    );
+    parser.addOption('zip_file',
+        abbr: 'f',
+        help: "This should be a path or a link of fclone zip file.");
+    parser.addOption('zip_dir',
+        abbr: 'd', help: "This should be a directory path for fclone folder.");
+    parser.addOption('backup_name',
+        abbr: 'n',
+        help:
+            "This is the name of the backup it will automatically add date and time and _fclone in the end.");
+    parser.addMultiOption('backup_paths',
+        abbr: 'p',
+        help:
+            "This is list of paths of files or directory which will add to fclone file for backup.");
+    parser.addFlag(
+      'help',
+      abbr: 'h',
+      negatable: false,
+      help: 'Prints out available command usages',
+    );
+    final parsedArgs = parser.parse(arguments);
+
+    if (parsedArgs.wasParsed('help') || parsedArgs.arguments.isEmpty) {
+      flog("\n${parser.usage}");
     }
-    // if (!isBackup) {
-    //   if (path == null) {
-    //     flog(
-    //         'error path not found please specify path where you store your zip file');
-    //   } else {
-    //     if (Uri.parse(path!).isAbsolute) {
-    //       flog('path is a url will download zip...');
-    //       await getZipFromUrl(path!);
-    //     } else {
-    //       File file = File(path!);
-    //       if (!await file.exists()) {
-    //         flog('error path not found $path');
-    //       } else {
-    //         await generateFiles(file);
-    //       }
-    //     }
-    //   }
-    // } else {
-    //   await backupAll();
-    // }
+
+    if (parsedArgs['backup_paths'] is List) {
+      pathList = parsedArgs['backup_paths'];
+    }
+    zipFile = parsedArgs['zip_file'];
+    zipDir = parsedArgs['zip_dir'];
+    backupName = parsedArgs['backup_name'];
+
+    var parsedArgsConfig = await _configFileExists();
+    if (parsedArgsConfig.isNotEmpty) {
+      if ((zipFile ?? '').isEmpty) {
+        zipFile = parsedArgsConfig['zip_file'];
+      }
+      if ((zipDir ?? '').isEmpty) {
+        zipDir = parsedArgsConfig['zip_dir'];
+      }
+      if ((backupName ?? '').isEmpty) {
+        backupName = parsedArgsConfig['backup_name'];
+      }
+      if ((pathList ?? []).isEmpty) {
+        if (parsedArgsConfig['backup_paths'] is List) {
+          pathList = List<String>.from(
+              (parsedArgsConfig['backup_paths'] as YamlList)
+                  .value
+                  .map((e) => e.toString()));
+        }
+      }
+    }
+
+    if (parsedArgs.wasParsed('backup') || parsedArgs.wasParsed('all')) {
+      await backupAll();
+      flog("Successfully Backup !!");
+    }
+    if (parsedArgs.wasParsed('generate') || parsedArgs.wasParsed('all')) {
+      await generate();
+      flog("Successfully Generate !!");
+    }
+    if (parsedArgs.wasParsed('clone') || parsedArgs.wasParsed('all')) {
+      for (var element in impFiles) {
+        try {
+          await runYamlFile(element.toString().replaceAll('.json', ''));
+        }catch(e){
+          flog("EROOR ::  $e");
+        }
+      }
+      if (await Directory('${backupName}_fclone').exists()) {
+        await Directory('${backupName}_fclone').delete(recursive: true);
+      }
+      flog("Successfully Clone !!");
+    }
   }
 
   Future<void> generate() async {
-    if (path == null) {
+    if (zipFile == null) {
       flog(
-          'error path not found please specify path where you store your zip file');
+          'Error path not found please specify path where you store your zip file');
     } else {
-      if (Uri.parse(path!).isAbsolute) {
+      if (Uri.parse(zipFile!).isAbsolute) {
         flog('path is a url will download zip...');
-        await getZipFromUrl(path!);
+        await getZipFromUrl(zipFile!);
       } else {
-        File file = File(path!);
+        File file = File(zipFile!);
         if (!await file.exists()) {
-          flog('error path not found $path');
+          flog('error path not found $zipFile');
         } else {
           await generateFiles(file);
         }
@@ -127,8 +195,8 @@ class FClone {
     }
   }
 
-  Future<Map<String, dynamic>> loadConfigFile() async {
-    final File file = File('pubspec.yaml');
+  Future<Map<String, dynamic>> loadConfigFile(String yamlFile) async {
+    final File file = File(yamlFile);
     final String yamlString = await file.readAsString();
     final Map yamlMap = loadYaml(yamlString);
     if (yamlMap['fclone'] is! Map) {
@@ -344,6 +412,7 @@ class FClone {
       File incoming = File(element.toString().replaceAll('.json', '.yaml'));
       File outGoing = File('${directory.path}/$element');
       if (await incoming.exists()) {
+        flog("afdas  ${incoming.path}");
         if (await outGoing.exists()) {
           await outGoing.delete();
         }
@@ -428,10 +497,11 @@ class FClone {
 
     /// create zip ..
     var encoder = ZipFileEncoder();
-    encoder.create('${backupName ?? ''}_fclone.zip');
+    encoder.create('${backupName ?? ''}_${DateTime.now()}_fclone.zip');
     await encoder.addDirectory(directory, includeDirName: false);
     encoder.close();
-    await directory.delete(recursive: true);
+    // await directory.delete(recursive: true);
+
   }
 
   Future<Map<String, String>> filesInDirectory(

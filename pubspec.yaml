@@ -10,10 +10,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  package_rename: ^1.0.0+1
-  flutter_native_splash: ^2.2.13
-  icons_launcher: ^2.0.5
-  flutter_platform_versioning: ^1.0.0
+  package_rename: ^1.5.3
+  flutter_native_splash: ^2.4.0
+  icons_launcher: ^2.1.7
+  flutter_platform_versioning: ^1.0.1
 
   http: ^0.13.5
   yaml: ^3.1.1
