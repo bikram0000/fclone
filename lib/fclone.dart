@@ -499,7 +499,7 @@ class FClone {
     encoder.create('${backupName ?? ''}_${DateTime.now()}_fclone.zip');
     await encoder.addDirectory(directory, includeDirName: false);
     encoder.close();
-    // await directory.delete(recursive: true);
+    await directory.delete(recursive: true);
 
   }
 
