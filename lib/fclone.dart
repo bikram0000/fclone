@@ -412,7 +412,6 @@ class FClone {
       File incoming = File(element.toString().replaceAll('.json', '.yaml'));
       File outGoing = File('${directory.path}/$element');
       if (await incoming.exists()) {
-        flog("afdas  ${incoming.path}");
         if (await outGoing.exists()) {
           await outGoing.delete();
         }
