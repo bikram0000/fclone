@@ -163,6 +163,12 @@ class FClone {
       flog("Successfully Generate !!");
     }
     if (parsedArgs.wasParsed('clone') || parsedArgs.wasParsed('all')) {
+      if (await Directory('assets/fclone').exists()) {
+        await Directory('assets/fclone').delete(recursive: true);
+      }
+      if (await Directory('lib/fclone').exists()) {
+        await Directory('lib/fclone').delete(recursive: true);
+      }
       for (var element in impFiles) {
         try {
           await runYamlFile(element.toString().replaceAll('.json', ''));
@@ -453,7 +459,8 @@ class FClone {
   }
 
   Future<void> backupAll() async {
-    Directory? directory = Directory('${backupName ?? ''}_fclone');
+    String fileName='${backupName ?? ''}_${DateTime.now().millisecondsSinceEpoch}_fclone';
+    Directory? directory = Directory(fileName);
 
     if (!await directory.exists()) {
       directory.create();
@@ -517,7 +524,7 @@ class FClone {
 
     /// create zip ..
     var encoder = ZipFileEncoder();
-    encoder.create('${backupName ?? ''}_${DateTime.now()}_fclone.zip');
+    encoder.create('$fileName.zip');
     await encoder.addDirectory(directory, includeDirName: false);
     encoder.close();
     await directory.delete(recursive: true);
