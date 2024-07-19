@@ -88,11 +88,6 @@ class FClone {
       help: 'Backup current project with fclone.',
     );
     parser.addFlag(
-      'generate',
-      negatable: false,
-      help: "This will generate files from url or path to process cloning.",
-    );
-    parser.addFlag(
       'clone',
       negatable: false,
       help: 'To clone project with provided fclone file or path.',
@@ -158,11 +153,9 @@ class FClone {
       await backupAll();
       flog("Successfully Backup !!");
     }
-    if (parsedArgs.wasParsed('generate') || parsedArgs.wasParsed('all')) {
-      await generate();
-      flog("Successfully Generate !!");
-    }
     if (parsedArgs.wasParsed('clone') || parsedArgs.wasParsed('all')) {
+      await generate();
+      flog("Successfully Generate Before Cloning !!");
       if (await Directory('assets/fclone').exists()) {
         await Directory('assets/fclone').delete(recursive: true);
       }
@@ -176,6 +169,8 @@ class FClone {
           flog("EROOR ::  $e");
         }
       }
+      await generate();
+      flog("Successfully Generate After Cloned !!");
       if (await Directory('${backupName}_fclone').exists()) {
         await Directory('${backupName}_fclone').delete(recursive: true);
       }
@@ -427,6 +422,7 @@ class FClone {
     File file = File('lib/${fcloneConstants.replaceAll('.json', '.dart')}');
     if (await file.exists()) {
       String constantString = await file.readAsString();
+      constantString.replaceAll('///static var %variable_name% = %value%;', '');
       RegExp regExp = RegExp("static var (.+?)=");
       regExp.allMatches(constantString).forEach((element) {
         data.addAll({"${element.group(1)}": ''});
@@ -490,8 +486,14 @@ class FClone {
     Map<String, dynamic> data = await backupConstantClass();
     await outGoing.writeAsString(jsonEncode(data));
 
-    ///copy replaceable files
-    if (pathList != null && pathList!.isNotEmpty) {
+    ///copy replaceable files path list
+    pathList??=[];
+    if(!pathList!.contains('assets/fclone')) {
+      pathList!.add('assets/fclone');
+    }
+    if(!pathList!.contains('lib/fclone')) {
+      pathList!.add('lib/fclone');
+    }
       File fileRel = File('${directory.path}/$fcloneReplaceFile');
       Directory replaceDirectory = Directory('${directory.path}/replace');
       if (!await replaceDirectory.exists()) {
@@ -500,7 +502,7 @@ class FClone {
       if (await fileRel.exists()) {
         await fileRel.delete();
       }
-      Map<String, String> data = {};
+      Map<String, String> data2 = {};
       await Future.forEach<String>(pathList!, (element) async {
         FileSystemEntityType type = await FileSystemEntity.type(element);
         if (type == FileSystemEntityType.file) {
@@ -508,19 +510,19 @@ class FClone {
           try {
             String name = basename(file.path);
             await file.copy('${replaceDirectory.path}/$name');
-            data.addAll({
+            data2.addAll({
               element: '${replaceDirectory.path}/$name',
             });
           } catch (e) {
             flog('Error :  $e');
           }
         } else if (type == FileSystemEntityType.directory) {
-          data.addAll(await filesInDirectory(
+          data2.addAll(await filesInDirectory(
               Directory(element), replaceDirectory, data));
         }
       });
-      await fileRel.writeAsString(jsonEncode(data));
-    }
+      await fileRel.writeAsString(jsonEncode(data2));
+
 
     /// create zip ..
     var encoder = ZipFileEncoder();
