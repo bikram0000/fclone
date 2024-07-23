@@ -34,13 +34,14 @@ class FClone {
     return _instance!;
   }
 
-  List<String> impFiles = [
-    'package_rename_config.json',
-    'icons_launcher.json',
-    'flutter_native_splash.json',
-    'flutter_platform_versioning.json',
-    'fclone.json',
-  ];
+  Map<String, String> impFiles = {
+    'rename': 'package_rename_config.json',
+    'icon': 'icons_launcher.json',
+    'splash': 'flutter_native_splash.json',
+    'version': 'flutter_platform_versioning.json',
+    'clone': 'fclone.json',
+  };
+
   String fcloneConstants = 'fclone_constants.json';
   String fcloneReplaceFile = 'fclone_replace_file.json';
 
@@ -89,6 +90,11 @@ class FClone {
       help: 'Backup current project with fclone.',
     );
     parser.addFlag(
+      'generate',
+      negatable: false,
+      help: "This will generate files from url or path to process cloning.",
+    );
+    parser.addFlag(
       'clone',
       negatable: false,
       help: 'To clone project with provided fclone file or path.',
@@ -98,6 +104,11 @@ class FClone {
       negatable: false,
       help: 'It will do all above 3 at once.',
     );
+    impFiles.forEach((k, v) {
+      if(k!='clone') {
+        parser.addFlag(k, negatable: false, help: "for $v");
+      }
+    });
     parser.addOption('zip_file',
         abbr: 'f', help: "This should be a path or a link of fclone zip file.");
     parser.addOption('zip_dir',
@@ -154,41 +165,25 @@ class FClone {
       await backupAll();
       flog("Successfully Backup !!");
     }
-    if (parsedArgs.wasParsed('clone') || parsedArgs.wasParsed('all')) {
+    if (parsedArgs.wasParsed('generate') || parsedArgs.wasParsed('all')) {
       await generate();
-      flog("Successfully Generate Before Cloning !!");
-      if (await Directory('assets/fclone').exists()) {
-        await Directory('assets/fclone').delete(recursive: true);
-      }
-      if (await Directory('lib/fclone').exists()) {
-        await Directory('lib/fclone').delete(recursive: true);
-      }
-      Completer<bool> completer =Completer();
-
-      await Future.forEach(impFiles, (element) async {
+      flog("Successfully Generate !!");
+    }
+    if (parsedArgs.wasParsed('clone') || parsedArgs.wasParsed('all')) {
+      await clone();
+    }
+    impFiles.forEach((k,v) async {
+      if(parsedArgs.wasParsed(k)){
         try {
-          await runYamlFile(element.toString().replaceAll('.json', ''));
+          await runYamlFile(v.toString().replaceAll('.json', ''));
         } catch (e) {
           flog("EROOR ::  $e");
         }
-        if(element =='fclone.json'){
-          completer.complete(true);
-        }
-      });
-      await completer.future;
-      await generate();
-      flog("Successfully Generate After Cloned !!");
-      if(zipFile!=null) {
-        String filePath =basename(zipFile!).toString().replaceAll('.zip', '');
-        if (await Directory(filePath).exists()) {
-          await Directory(filePath).delete(recursive: true);
-        }
       }
-      flog("Successfully Clone !!");
-    }
+    });
   }
 
-  Future<void> generate() async {
+  Future<void> generate({bool onlyImpFiles = false}) async {
     if (zipFile == null) {
       flog(
           'Error path not found please specify path where you store your zip file');
@@ -201,7 +196,7 @@ class FClone {
         if (!await file.exists()) {
           flog('error path not found $zipFile');
         } else {
-          await generateFiles(file);
+          await generateFiles(file, onlyImpFiles: onlyImpFiles);
         }
       }
     }
@@ -227,21 +222,16 @@ class FClone {
     print('FCLONE :: $s');
   }
 
-  Future<void> generateFiles(File file) async {
+  Future<void> generateFiles(File file, {bool onlyImpFiles = false}) async {
     zipFile = file.path;
     Directory directory;
-    dataPrevConst = await backupConstantClass();
-    dataPrevConst.removeWhere((s,v){
-      return s.contains('%variable_name%');
-    });
+
+    //unarchive files.
     if (zipDir == null || zipDir!.isEmpty) {
       directory =
           Directory(basename(file.path).toString().replaceAll('.zip', ''));
-
-      ///unarchive zip file...
+      flog('unarchive zip file...');
       try {
-//       final bytes = await File(file.path).readAsBytes();
-//       final archive = ZipDecoder().decodeBytes(bytes);
         final bytes = File(file.path).readAsBytesSync();
         final archive = ZipDecoder().decodeBytes(bytes);
         await Future.forEach<ArchiveFile>(archive.files, (file) async {
@@ -251,16 +241,11 @@ class FClone {
             File file3 = await File('${directory.path}/$filename')
                 .create(recursive: true);
             await file3.writeAsBytes(data);
-            // ..createSync(recursive: true)
-            // ..writeAsBytesSync(data);
           } else {
             await Directory('${directory.path}/$filename')
                 .create(recursive: true);
           }
         });
-        // final inputStream = InputFileStream(file.path);
-        // final archive = ZipDecoder().decodeBuffer(inputStream);
-        // extractArchiveToDisk(archive, 'fclone');
       } catch (e) {
         flog('$e');
       }
@@ -268,20 +253,35 @@ class FClone {
       directory = Directory(zipDir!);
     }
 
-    /// working on consts ...
-    File fcloneConsts = File('${directory.path}/$fcloneConstants');
-    if (await fcloneConsts.exists()) {
-      await generateConstantsFromJson(fcloneConsts);
+    if (!onlyImpFiles) {
+      flog('backup constant class fclone_constants.dart.');
+      dataPrevConst = await backupConstantClass();
+      dataPrevConst.removeWhere((s, v) {
+        return s.contains('%variable_name%');
+      });
     }
 
-    /// working on file replacing if needed. like logos etc...
-    File fcloneReplace = File('${directory.path}/$fcloneReplaceFile');
-    if (await fcloneReplace.exists()) {
-      await replaceFilesFromJson(fcloneReplace);
+    if (!onlyImpFiles) {
+      /// working on consts ...
+      flog('Generating constants class.');
+      File fcloneConsts = File('${directory.path}/$fcloneConstants');
+      if (await fcloneConsts.exists()) {
+        await generateConstantsFromJson(fcloneConsts);
+      }
+    }
+
+    if (!onlyImpFiles) {
+      /// working on file replacing if needed. like logos etc...
+      flog('Replace files.');
+      File fcloneReplace = File('${directory.path}/$fcloneReplaceFile');
+      if (await fcloneReplace.exists()) {
+        await replaceFilesFromJson(fcloneReplace);
+      }
     }
 
     /// generate icon,name,splash screen files and run same time..
-    await Future.forEach(impFiles, (element) async {
+    flog('Generating important files.');
+    await Future.forEach(impFiles.values, (element) async {
       File incoming = File('${directory.path}/$element');
       File outGoing = File(element.toString().replaceAll('.json', '.yaml'));
       if (await incoming.exists()) {
@@ -297,6 +297,7 @@ class FClone {
         await outGoing.writeAsString(
           '# Generated By Bikramaditya From Fclone\n$data',
         );
+        flog('Generating ${outGoing.path}');
       }
     });
   }
@@ -336,7 +337,7 @@ class FClone {
       case 'flutter_platform_versioning':
         try {
           if (await File('flutter_platform_versioning.yaml').exists()) {
-          await flutter_platform_versioning.set(['--update']);
+            await flutter_platform_versioning.set(['--update']);
           }
         } catch (e) {
           flog('error on package platform versioning ::$e');
@@ -387,6 +388,7 @@ class FClone {
       await Future.forEach(jsonData.entries, (element) async {
         File file1 = File('${element.key}'); // old file
         File file2 = File('${element.value}'); // new file
+        flog('Copying file ${file2.path} --> ${file1.path}');
         if (await file2.exists()) {
           if (await file1.exists()) {
             await file1.delete();
@@ -466,7 +468,8 @@ class FClone {
   }
 
   Future<void> backupAll() async {
-    String fileName='${backupName ?? ''}_${DateTime.now().millisecondsSinceEpoch}_fclone';
+    String fileName =
+        '${backupName ?? ''}_${DateTime.now().millisecondsSinceEpoch}_fclone';
     Directory? directory = Directory(fileName);
 
     if (!await directory.exists()) {
@@ -474,7 +477,7 @@ class FClone {
     }
 
     /// backup icon,name,splash screen files and run same time..
-    await Future.forEach(impFiles, (element) async {
+    await Future.forEach(impFiles.values, (element) async {
       File incoming = File(element.toString().replaceAll('.json', '.yaml'));
       File outGoing = File('${directory.path}/$element');
       if (await incoming.exists()) {
@@ -498,42 +501,41 @@ class FClone {
     await outGoing.writeAsString(jsonEncode(data));
 
     ///copy replaceable files path list
-    pathList??=[];
-    if(!pathList!.contains('assets/fclone')) {
+    pathList ??= [];
+    if (!pathList!.contains('assets/fclone')) {
       pathList!.add('assets/fclone');
     }
-    if(!pathList!.contains('lib/fclone')) {
+    if (!pathList!.contains('lib/fclone')) {
       pathList!.add('lib/fclone');
     }
-      File fileRel = File('${directory.path}/$fcloneReplaceFile');
-      Directory replaceDirectory = Directory('${directory.path}/replace');
-      if (!await replaceDirectory.exists()) {
-        await replaceDirectory.create();
-      }
-      if (await fileRel.exists()) {
-        await fileRel.delete();
-      }
-      Map<String, String> data2 = {};
-      await Future.forEach<String>(pathList!, (element) async {
-        FileSystemEntityType type = await FileSystemEntity.type(element);
-        if (type == FileSystemEntityType.file) {
-          File file = File(element);
-          try {
-            String name = basename(file.path);
-            await file.copy('${replaceDirectory.path}/$name');
-            data2.addAll({
-              element: '${replaceDirectory.path}/$name',
-            });
-          } catch (e) {
-            flog('Error :  $e');
-          }
-        } else if (type == FileSystemEntityType.directory) {
-          data2.addAll(await filesInDirectory(
-              Directory(element), replaceDirectory, data2));
+    File fileRel = File('${directory.path}/$fcloneReplaceFile');
+    Directory replaceDirectory = Directory('${directory.path}/replace');
+    if (!await replaceDirectory.exists()) {
+      await replaceDirectory.create();
+    }
+    if (await fileRel.exists()) {
+      await fileRel.delete();
+    }
+    Map<String, String> data2 = {};
+    await Future.forEach<String>(pathList!, (element) async {
+      FileSystemEntityType type = await FileSystemEntity.type(element);
+      if (type == FileSystemEntityType.file) {
+        File file = File(element);
+        try {
+          String name = basename(file.path);
+          await file.copy('${replaceDirectory.path}/$name');
+          data2.addAll({
+            element: '${replaceDirectory.path}/$name',
+          });
+        } catch (e) {
+          flog('Error :  $e');
         }
-      });
-      await fileRel.writeAsString(jsonEncode(data2));
-
+      } else if (type == FileSystemEntityType.directory) {
+        data2.addAll(await filesInDirectory(
+            Directory(element), replaceDirectory, data2));
+      }
+    });
+    await fileRel.writeAsString(jsonEncode(data2));
 
     /// create zip ..
     var encoder = ZipFileEncoder();
@@ -575,5 +577,42 @@ class FClone {
       }
     });
     return data;
+  }
+
+  Future<void> clone() async {
+    if (await Directory('assets/fclone').exists()) {
+      await Directory('assets/fclone').delete(recursive: true);
+    }
+    await Directory('assets/fclone').create(recursive: true);
+    if (await Directory('lib/fclone').exists()) {
+      await Directory('lib/fclone').delete(recursive: true);
+    }
+    await Directory('lib/fclone').create(recursive: true);
+    await generate();
+    flog("Successfully Generate Before Cloning !!");
+
+    Completer<bool> completer = Completer();
+
+    await Future.forEach(impFiles.values, (element) async {
+      try {
+        await runYamlFile(element.toString().replaceAll('.json', ''));
+      } catch (e) {
+        flog("EROOR ::  $e");
+      }
+      if (element == 'fclone.json') {
+        completer.complete(true);
+      }
+    });
+    await completer.future;
+    await generate();
+    flog("Successfully Generate After Cloned !!");
+    if (zipFile != null) {
+      String filePath = basename(zipFile!).toString().replaceAll('.zip', '');
+      if (await Directory(filePath).exists()) {
+        await Directory(filePath).delete(recursive: true);
+      }
+
+      flog("Successfully Clone !!");
+    }
   }
 }
